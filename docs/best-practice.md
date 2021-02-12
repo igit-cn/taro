@@ -4,14 +4,12 @@ title: 最佳实践
 
 ## 关于 JSX 支持程度补充说明
 
-由于 JSX 中的写法千变万化，我们不能支持到所有的 JSX 写法，同时由于微信小程序端的限制，也有部分 JSX 的优秀用法暂时不能得到很好地支持，特在此补充说明一下对于 JSX 的支持程度
+由于 JSX 中的写法千变万化，我们不能支持到所有的 JSX 写法，同时由于微信小程序端的限制，也有部分 JSX 的优秀用法暂时不能得到很好地支持，特在此补充说明一下对于 JSX 的支持程度:
 
-* [不能在包含 JSX 元素的 map 循环中使用 if 表达式](https://github.com/NervJS/taro/blob/master/packages/eslint-plugin-taro/docs/if-statement-in-map-loop.md)
 * [不能使用 Array#map 之外的方法操作 JSX 数组](https://github.com/NervJS/taro/blob/master/packages/eslint-plugin-taro/docs/manipulate-jsx-as-array.md)
-* [不能在 JSX 参数中使用匿名函数](https://github.com/NervJS/taro/blob/master/packages/eslint-plugin-taro/docs/no-anonymous-function-in-props.md)
-* [暂不支持在 render() 之外的方法定义 JSX](https://github.com/NervJS/taro/blob/master/packages/eslint-plugin-taro/docs/no-jsx-in-class-method.md)
-* [不能在 JSX 参数中使用对象展开符](https://github.com/NervJS/taro/blob/master/packages/eslint-plugin-taro/docs/no-spread-in-props.md)
-* [不支持无状态组件](https://github.com/NervJS/taro/blob/master/packages/eslint-plugin-taro/docs/no-stateless-function.md)
+* [暂不支持在 render() 之外的方法定义 JSX](https://github.com/NervJS/taro/blob/master/packages/eslint-plugin-taro/docs/no-jsx-in-class-method.md) (自 v1.3.0-beta.0 起支持)
+* [不能在 JSX 参数中使用对象展开符](https://github.com/NervJS/taro/blob/master/packages/eslint-plugin-taro/docs/no-spread-in-props.md) (自 v1.3.0-beta.0 起，自定义组件可以使用对象展开符，内置组件仍然需要分别单独传入参数)
+* [不支持无状态组件](https://github.com/NervJS/taro/blob/master/packages/eslint-plugin-taro/docs/no-stateless-function.md) (自 v1.3.0-beta.0 起支持)
 
 以上的规则在 Taro 默认生成的模板都有 ESLint 检测，无需做任何配置。如果你的编辑器没有安装 ESLint 插件可以参考以下教程在你的编辑器安装：
 
@@ -31,7 +29,7 @@ $ ESLINT=false taro build --type weapp --watch
 
 ### 组件样式说明
 
-微信小程序的[自定义组件样式](https://developers.weixin.qq.com/miniprogram/dev/framework/custom-component/wxml-wxss.html)默认是不能受外部样式影响的，例如在页面中引用了一个自定义组件，在页面样式中直接写自定义组件元素的样式是无法生效的。这一点，在 Taro 中也是一样，而这也是与大家认知的传统 web 开发不太一样。
+微信小程序的[自定义组件样式](https://developers.weixin.qq.com/miniprogram/dev/framework/custom-component/wxml-wxss.html)默认是不能受外部样式影响的，例如在页面中引用了一个自定义组件，在页面样式中直接写自定义组件元素的样式是无法生效的。这一点，在 Taro 中也是一样，而这也是与大家认知的传统 Web 开发不太一样。
 
 ### 给组件设置 `defaultProps`
 
@@ -64,16 +62,18 @@ const { property } = this.props
 const property = this.props.property
 ```
 
-但是一千个人心中有一千个哈姆雷特，不同人的代码写法肯定也不尽相同，所以 Taro 的编译肯定不能覆盖到所有的写法，而同时可能会有某一属性没有使用而是直接传递给子组件的情况，这种情况是编译时无论如何也处理不到的，这时候就需要大家在编码时给组件设置 [`defaultProps`](https://nervjs.github.io/taro/docs/component.html#defaultprops) 来解决了。
+但是一千个人心中有一千个哈姆雷特，不同人的代码写法肯定也不尽相同，所以 Taro 的编译肯定不能覆盖到所有的写法，而同时可能会有某一属性没有使用而是直接传递给子组件的情况，这种情况是编译时无论如何也处理不到的，这时候就需要大家在编码时给组件设置 [`defaultProps`](./apis/about/tarocomponent.html#defaultprops) 来解决了。
 
 组件设置的 `defaultProps` 会在运行时用来弥补编译时处理不到的情况，里面所有的属性都会被设置到 `properties` 中初始化组件，正确设置 `defaultProps` 可以避免很多异常的情况的出现。
 
 ### 组件传递函数属性名以 `on` 开头
 
+> 在 v1.3.0-beta.0 之后，自定义组件间的事件传递可以不用 `on` 开头，但内置组件的事件依然是以 `on` 开头的，为了一致性我们仍然推荐你以 `on` 开头命名你的事件。
+
 在 Taro 中，父组件要往子组件传递函数，属性名必须以 `on` 开头
 
 ```jsx
-// 调用 Custom 组件，传入 handleEvent 函数，属性名为 `onTrigger`
+// 调用 Custom 组件，传入 handleEvent 函数，属性名为 onTrigger
 class Parent extends Component {
 
   handleEvent () {
@@ -91,7 +91,7 @@ class Parent extends Component {
 这是因为，微信小程序端组件化是不能直接传递函数类型给子组件的，在 Taro 中是借助组件的[事件机制](https://developers.weixin.qq.com/miniprogram/dev/framework/custom-component/events.html)来实现这一特性，而小程序中传入事件的时候属性名写法为 `bindmyevent` 或者 `bind:myevent`
 
 ```xml
-<!-- 当自定义组件触发“myevent”事件时，调用“onMyEvent”方法 -->
+<!-- 当自定义组件触发 myevent 事件时，调用 onMyEvent 方法 -->
 <component-tag-name bindmyevent="onMyEvent" />
 <!-- 或者可以写成 -->
 <component-tag-name bind:myevent="onMyEvent" />
@@ -100,6 +100,8 @@ class Parent extends Component {
 所以 Taro 中约定组件传递函数属性名以 `on` 开头，同时这也和内置组件的事件绑定写法保持一致了。
 
 ### 小程序端不要在组件中打印传入的函数
+
+> 自 v1.3.0-beta.0 没有这条限制
 
 前面已经提到小程序端的组件传入函数的原理，所以在小程序端不要在组件中打印传入的函数，因为拿不到结果，但是 `this.props.onXxx && this.props.onXxx()` 这种判断函数是否传入来进行调用的写法是完全支持的。
 
@@ -170,7 +172,7 @@ class App extends Component {
 
 ### 组件 `state` 与 `props` 里字段重名的问题
 
-不要在 `state` 与 `props` 上用同名的字段，因为这些被字段在微信小程序中都会挂在 `data` 上。
+不要在 `state` 与 `props` 上用同名的字段，因为这些字段在微信小程序中都会挂在 `data` 上。
 
 ### 小程序中页面生命周期 `componentWillMount` 不一致问题
 
@@ -232,78 +234,25 @@ if (process.env.NODE_ENV === 'development') {
 
 `this.$componentType` 可能取值分别为 `PAGE` 和 `COMPONENT`，开发者可以根据此变量的取值分别采取不同逻辑。
 
-### 预加载
+### 原生小程序组件传递 props 给 Taro 组件
 
-在**微信小程序中**，从调用 `Taro.navigateTo`、`Taro.redirectTo` 或 `Taro.switchTab` 后，到页面触发 componentWillMount 会有一定延时。因此一些网络请求可以提前到发起跳转前一刻去请求。
+**Taro v1.3+** 对 props 系统进行了改造，使得不能兼容原生组件通过 properties 传入的属性。
 
-Taro 提供了 `componentWillPreload` 钩子，它接收页面跳转的参数作为参数。可以把需要预加载的内容通过 `return` 返回，然后在页面触发 componentWillMount 后即可通过 `this.$preloadData` 获取到预加载的内容。
-
-注意：调用跳转方法时需要使用**绝对路径**，相对路径不会触发此钩子。
-
-```jsx
-class Index extends Component {
-  componentWillMount () {
-    console.log('isFetching: ', this.isFetching)
-    this.$preloadData
-      .then(res => {
-        console.log('res: ', res)
-        this.isFetching = false
-      })
-  }
-
-  componentWillPreload (params) {
-    return this.fetchData(params.url)
-  }
-
-  fetchData () {
-    this.isFetching = true
-    ...
-  }
-}
-```
-
-### 在小程序中，可以使用 this.$preload 函数进行页面跳转传参
-
-用法：`this.$preload(key:String|Object, [value: Any])`
-
-之所以命名为 $preload，因为它也有一点预加载数据的意味。
-
-如果觉得每次页面跳转传参时，需要先把参数 stringify 后加到 url 的查询字符串中很繁琐，可以利用 `this.$preload` 进行传参。
-
-另外如果传入的是下一个页面的数据请求 promise，也有上一点提到的“预加载”功能，也能够绕过 componentWillMount 延时。不同点主要在于代码管理，开发者可酌情使用。
-
-例子:
+目前可以通过把所有需要传入 Taro 组件的 props，通过借助 `extraProps` 属性来解决。
 
 ```js
-// 传入单个参数
+// 小程序组件常规 props 传递
+<plugin title="{{name}}" desc="{{desc}}" bindonclick="onClick"></plugin>
 
-// A 页面
-// 调用跳转方法前使用 this.$preload
-this.$preload('key', 'val')
-Taro.navigateTo({ url: '/pages/B/B' })
-
-// B 页面
-// 可以于 this.$router.preload 中访问到 this.$preload 传入的参数
-componentWillMount () {
-  console.log('preload: ', this.$router.preload.key)
-}
-```
-
-
-```js
-// 传入多个参数
-
-// A 页面
-this.$preload({
-  x: 1,
-  y: 2
+// 原生小程序组件调用 Taro 组件时需要改造成以下形式：
+this.setData({
+  extraProps: {
+    name,
+    desc,
+    onClick: this.onClick
+  }
 })
-Taro.navigateTo({ url: '/pages/B/B' })
-
-// B 页面
-componentWillMount () {
-  console.log('preload: ', this.$router.preload)
-}
+<plugin extraProps="{{extraProps}}" ></plugin>
 ```
 
 ## 全局变量

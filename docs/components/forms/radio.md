@@ -3,35 +3,19 @@ title: Radio
 sidebar_label: Radio
 ---
 
-##### RadioGroup
-##### 单项选择器，内部由多个 `<Radio/>` 组成
-> 属性及支持度
+单选项目
 
-| 微信小程序 | H5 | ReactNative| 属性名 | 类型 | 默认值 | 说明 |
-| :-: | :-: | :-: | :- | :- | :- | :- |
-| √ | √ | √ | name | String |  | 表单组件中加上 name 来作为 key |
-| √ | √ | √ | onChange | EventHandle |  | `<RadioGroup/>` 中选中项发生改变时触发 change 事件，detail = value:[选中的 radio 的 value 的数组] |
+> [参考文档](https://developers.weixin.qq.com/miniprogram/dev/component/radio.html)
 
+## 类型
 
-##### Radio
-##### 单选项目
-> 属性及支持度
+```tsx
+ComponentType<RadioProps>
+```
 
-| 微信小程序 | H5 | ReactNative| 属性名 | 类型 | 默认值 | 说明 |
-| :-: | :-: | :-: | :- | :- | :- | :- |
-| √ |   | √ | value      | String      | false  | `<Radio/>` 标识。当该 `<Radio/>` 选中时，`<RadioGroup/>` 的 change 事件会携带 `<Radio/>` 的 value |
-| √ | √ | √ | checked    | Boolean     | false  | 当前是否选中    |
-| √ | √ | √ | disabled   | Boolean     | false  | 是否禁用        |
-| √ |   | √ | color      | Color       | false  | radio 的颜色，同 css 的 color   |
-| √ | √ | √ | onChange   | EventHandle |        | 选中项发生变化时触发 change 事件   |
+## 示例代码
 
-
-###### 示例：
-```jsx
-import Taro, { Component } from '@tarojs/taro'
-import { View, Text, Radio } from '@tarojs/components'
-import './radio.scss'
-
+```tsx
 export default class PageRadio extends Component {
   state = {
     list: [
@@ -97,3 +81,27 @@ export default class PageRadio extends Component {
   }
 }
 ```
+
+## RadioProps
+
+| 参数 | 类型 | 默认值 | 必填 | 说明 |
+| --- | --- | :---: | :---: | --- |
+| value | `string` |  | 否 | `<Radio/>` 标识。当该`<Radio/>` 选中时，`<RadioGroup/>`的 change 事件会携带`<Radio/>`的 value |
+| checked | `boolean` | `false` | 否 | 当前是否选中 |
+| disabled | `boolean` | `false` | 否 | 是否禁用 |
+| color | `string` | `"#09BB07"` | 否 | Radio 的颜色，同 css 的 color |
+
+### API 支持度
+
+| API | 微信小程序 | H5 | React Native |
+| :---: | :---: | :---: | :---: |
+| RadioProps.value | ✔️ |  | ✔️ |
+| RadioProps.checked | ✔️ | ✔️ | ✔️ |
+| RadioProps.disabled | ✔️ | ✔️ | ✔️ |
+| RadioProps.color | ✔️ |  | ✔️ |
+
+## API 支持度
+
+| API | 微信小程序 | H5 | React Native |
+| :---: | :---: | :---: | :---: |
+| Radio | ✔️ | ✔️ | ✔️ |

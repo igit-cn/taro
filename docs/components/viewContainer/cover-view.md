@@ -3,21 +3,19 @@ title: CoverView
 sidebar_label: CoverView
 ---
 
-##### 覆盖在原生组件之上的文本视图，可覆盖的原生组件包括 map、video、canvas、camera、live-player、live-pusher，只支持嵌套 cover-view、cover-image，可在 cover-view 中使用 button。
+覆盖在原生组件之上的文本视图。可覆盖的原生组件包括 map、video、canvas、camera、live-player、live-pusher 只支持嵌套 cover-view、cover-image，可在 cover-view 中使用 button。
 
-> 组件 支持度
+> [参考文档](https://developers.weixin.qq.com/miniprogram/dev/component/cover-view.html)
 
-| 微信小程序 | H5 | ReactNative |
-| :-: | :-: | :-: |
-| ✔️ | x | x |
+## 类型
 
-小程序全部支持，属性参考[cover-view](https://developers.weixin.qq.com/miniprogram/dev/component/cover-view.html)。属性值请改写为驼峰式命名。
+```tsx
+ComponentType<CoverViewProps>
+```
 
-```jsx
-import Taro, { Component } from '@tarojs/taro'
-// 引入 MovableArea, CoverView 组件
-import { Video, CoverImage, CoverView } from '@tarojs/components'
+## 示例代码
 
+```tsx
 class App extends Components {
   render () {
     return (
@@ -32,3 +30,21 @@ class App extends Components {
   }
 }
 ```
+
+## CoverViewProps
+
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | :---: | --- |
+| scrollTop | `number` | 否 | 设置顶部滚动偏移量，仅在设置了 overflow-y: scroll 成为滚动元素后生效 |
+
+### API 支持度
+
+| API | 微信小程序 | H5 | React Native |
+| :---: | :---: | :---: | :---: |
+| CoverViewProps.scrollTop | ✔️ |  |  |
+
+## API 支持度
+
+| API | 微信小程序 | 百度小程序 | 支付宝小程序 | H5 | React Native |
+| :---: | :---: | :---: | :---: | :---: | :---: |
+| CoverView | ✔️ | ✔️ | ✔️ |  |  |

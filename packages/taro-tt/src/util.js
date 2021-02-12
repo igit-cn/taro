@@ -1,4 +1,6 @@
 import isPlainObject from 'lodash/isPlainObject'
+import { Current } from '@tarojs/taro'
+import { SimpleMap } from '@tarojs/utils'
 
 export function isEmptyObject (obj) {
   if (!obj || !isPlainObject(obj)) {
@@ -10,6 +12,10 @@ export function isEmptyObject (obj) {
     }
   }
   return true
+}
+
+export function isUndefined (o) {
+  return o === undefined
 }
 
 /**
@@ -111,10 +117,11 @@ function diffArrToPath (to, from, res = {}, keyPrev = '') {
         if (arrTo !== arrFrom) {
           res[targetKey] = toItem
         } else if (arrTo && arrFrom) {
-          if (toItem.length === fromItem.length) {
-            diffArrToPath(toItem, fromItem, res, `${targetKey}`)
-          } else {
+          if (toItem.length < fromItem.length) {
             res[targetKey] = toItem
+          } else {
+            // 数组
+            diffArrToPath(toItem, fromItem, res, `${targetKey}`)
           }
         } else {
           if (!toItem || !fromItem || keyList(toItem).length < keyList(fromItem).length) {
@@ -123,7 +130,7 @@ function diffArrToPath (to, from, res = {}, keyPrev = '') {
             // 对象
             let shouldDiffObject = true
             Object.keys(fromItem).some(key => {
-              if (typeof toItem[key] === 'undefined') {
+              if (typeof toItem[key] === 'undefined' && typeof fromItem[key] !== 'undefined') {
                 shouldDiffObject = false
                 return true
               }
@@ -166,10 +173,11 @@ export function diffObjToPath (to, from, res = {}, keyPrev = '') {
         if (arrTo !== arrFrom) {
           res[targetKey] = toItem
         } else if (arrTo && arrFrom) {
-          if (toItem.length === fromItem.length) {
-            diffArrToPath(toItem, fromItem, res, `${targetKey}`)
-          } else {
+          if (toItem.length < fromItem.length) {
             res[targetKey] = toItem
+          } else {
+            // 数组
+            diffArrToPath(toItem, fromItem, res, `${targetKey}`)
           }
         } else {
           // null
@@ -179,7 +187,7 @@ export function diffObjToPath (to, from, res = {}, keyPrev = '') {
             // 对象
             let shouldDiffObject = true
             Object.keys(fromItem).some(key => {
-              if (typeof toItem[key] === 'undefined') {
+              if (typeof toItem[key] === 'undefined' && typeof fromItem[key] !== 'undefined') {
                 shouldDiffObject = false
                 return true
               }
@@ -232,4 +240,66 @@ const _loadTime = (new Date()).getTime().toString()
 let _i = 1
 export function getUniqueKey () {
   return _loadTime + (_i++)
+}
+
+function triggerLoopRef (that, dom, handler) {
+  const handlerType = typeof handler
+  if (handlerType !== 'function' && handlerType !== 'object') {
+    return console.warn(`循环 Ref 只支持函数或 createRef()，当前类型为：${handlerType}`)
+  }
+
+  if (handlerType === 'object') {
+    handler.current = dom
+  } else if (handlerType === 'function') {
+    handler.call(that, dom)
+  }
+}
+
+export function handleLoopRef (component, id, type, handler) {
+  if (!component) return null
+
+  let res
+  if (type === 'component') {
+    component.selectComponent(id, function (res) {
+      res = res ? res.$component || res : null
+      res && triggerLoopRef(component.$component, res, handler)
+    })
+  } else {
+    const query = wx.createSelectorQuery().in(component)
+    res = query.select(id)
+    res && triggerLoopRef(component.$component, res, handler)
+  }
+
+  return null
+}
+
+let id = 0
+function genId () {
+  return String(id++)
+}
+
+let compIdsMapper
+try {
+  compIdsMapper = new Map()
+} catch (error) {
+  compIdsMapper = new SimpleMap()
+}
+export function genCompid (key, isNeedCreate) {
+  if (!Current || !Current.current || !Current.current.$scope) return []
+
+  const prevId = compIdsMapper.get(key)
+  if (isNeedCreate) {
+    const id = genId()
+    compIdsMapper.set(key, id)
+    return [prevId, id]
+  } else {
+    const id = prevId || genId()
+    !prevId && compIdsMapper.set(key, id)
+    return [null, id]
+  }
+}
+
+let prefix = 0
+export function genCompPrefix () {
+  return String(prefix++)
 }

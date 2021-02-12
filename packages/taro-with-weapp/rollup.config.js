@@ -8,6 +8,7 @@ const cwd = __dirname
 
 const baseConfig = {
   input: join(cwd, 'src/index.ts'),
+  external: ['@tarojs/taro'],
   output: [
     {
       file: join(cwd, 'dist/index.js'),
@@ -35,7 +36,9 @@ const baseConfig = {
     common({
       include: 'node_modules/**'
     }),
-    buble()
+    buble({
+      objectAssign: 'Object.assign'
+    })
   ]
 }
 const esmConfig = Object.assign({}, baseConfig, {

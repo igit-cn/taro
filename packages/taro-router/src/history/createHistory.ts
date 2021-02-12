@@ -6,6 +6,10 @@ import { Action, History, HistoryState, Location, CustomRoutes } from '../utils/
 import createTransitionManager from './createTransitionManager';
 import { createLocation } from './LocationUtils';
 import { addLeadingSlash, createPath, hasBasename, stripBasename, stripTrailingSlash } from './PathUtils';
+import { tryToCall } from '../utils'
+
+type Callback = (ok: boolean) => void
+type CurrentRoute = Taro.Page | { beforeRouteLeave?: Function }
 
 const PopStateEvent = 'popstate'
 const defaultStoreKey = 'taroRouterStore'
@@ -70,14 +74,17 @@ const tryToParseStore = (state: HistoryState) => {
  */
 const createHistorySerializer = (storeObj: HistoryState) => {
   let serialize = () => {
-    localStorage.setItem(defaultStoreKey, JSON.stringify(storeObj))
+    try {
+      localStorage.setItem(defaultStoreKey, JSON.stringify(storeObj))
+    } catch (e) {}
   }
   serialize()
   return serialize
 }
 
-const createHistory = (props: { basename?: string, mode: "hash" | "browser", firstPagePath: string, customRoutes: CustomRoutes }) => {
+const createHistory = (props: { basename?: string, mode: "hash" | "browser" | "multi", firstPagePath: string, customRoutes: CustomRoutes }) => {
   const transitionManager = createTransitionManager()
+  transitionManager.setPrompt('')
   const basename = props.basename ? stripTrailingSlash(addLeadingSlash(props.basename)) : ''
   const customRoutes = props.customRoutes || {}
   let listenerCount = 0
@@ -98,7 +105,7 @@ const createHistory = (props: { basename?: string, mode: "hash" | "browser", fir
     path = stripBasename(path, basename)
 
     if (path === '/') {
-      path = props.firstPagePath
+      path = props.firstPagePath + search + hash
     }
 
     return createLocation(path, key)
@@ -108,13 +115,13 @@ const createHistory = (props: { basename?: string, mode: "hash" | "browser", fir
 
   const initialLocation = getDOMLocation(initState)
   let lastLocation = initialLocation
-  Taro._set$router(initialLocation)
+  Taro._$router = initialLocation
 
   let store = tryToParseStore(initState)
 
   serialize = createHistorySerializer(store)
 
-  globalHistory.replaceState(initialLocation.state, '')
+  globalHistory.replaceState(initialLocation.state, '', '')
 
   const createHref = props.mode === "hash"
     ? location => '#' + addLeadingSlash(basename + createPath(location))
@@ -139,9 +146,30 @@ const createHistory = (props: { basename?: string, mode: "hash" | "browser", fir
       action: history.action
     }
 
-    Taro._set$router(history.location)
-    Taro['eventCenter'].trigger('routerChange', {...params})
+    Taro._$router = history.location
+    Taro.eventCenter.trigger('__taroRouterChange', {...params})
     transitionManager.notifyListeners({...params})
+  }
+
+  function getCurrentRoute(): CurrentRoute {
+    if (Taro && typeof Taro.getCurrentPages === 'function') {
+      const currentPageStack = Taro.getCurrentPages()
+      const stackTop = currentPageStack.length - 1
+      return currentPageStack[stackTop]
+    }
+    
+    return {}
+  }
+
+  function getUserConfirmation(next: Callback, fromLocation: Location, toLocation: Location): void {
+    const currentRoute = getCurrentRoute() || {}
+    const leaveHook = currentRoute.beforeRouteLeave
+
+    if (typeof leaveHook === 'function') {
+      tryToCall(leaveHook, currentRoute, fromLocation, toLocation, next)
+    } else {
+      next(true)
+    }
   }
 
   const push = (path: string) => {
@@ -153,13 +181,27 @@ const createHistory = (props: { basename?: string, mode: "hash" | "browser", fir
       location.path = customRoutes[originalPath]
     }
 
-    const href = createHref(location)
+    transitionManager.confirmTransitionTo(
+      location,
+      action,
+      (result, callback) => {
+        getUserConfirmation(callback, lastLocation, location)
+      },
+      ok => {
+        if (!ok) {
+          stateKey--
+          return
+        }
 
-    globalHistory.pushState({ key }, '', href)
+        const href = createHref(location)
 
-    store.key = key!
-
-    setState({ action, location })
+        globalHistory.pushState({ key }, '', href)
+    
+        store.key = key!
+    
+        setState({ action, location })
+      }
+    )
   }
 
   const replace = (path: string) => {
@@ -171,11 +213,22 @@ const createHistory = (props: { basename?: string, mode: "hash" | "browser", fir
       location.path = customRoutes[originalPath]
     }
 
-    const href = createHref(location)
+    transitionManager.confirmTransitionTo(
+      location,
+      action,
+      (result, callback) => {
+        getUserConfirmation(callback, lastLocation, location)
+      },
+      ok => {
+        if (!ok) return
 
-    globalHistory.replaceState({ key }, '', href)
+        const href = createHref(location)
 
-    setState({ action, location })
+        globalHistory.replaceState({ key }, '', href)
+    
+        setState({ action, location })
+      }
+    )
   }
 
   const go = (num: number) => {
@@ -210,14 +263,50 @@ const createHistory = (props: { basename?: string, mode: "hash" | "browser", fir
     }
 
     store.key = String(nextKey)
-    setState({ action, location: nextLocation })
+
+    transitionManager.confirmTransitionTo(
+      nextLocation,
+      action,
+      (result, callback) => {
+        getUserConfirmation(callback, lastLocation, nextLocation)
+      },
+      ok => {
+        if (ok) {
+          setState({
+            action,
+            location: nextLocation
+          })
+        } else {
+          revertPop()
+        }
+      }
+    )
+  }
+
+  const revertPop = (): void => {
+    const toLocation = history.location
+
+    const key = toLocation.state.key
+
+    const href = createHref(toLocation)
+
+    globalHistory.pushState({ key }, '', href)
   }
 
   const checkDOMListeners = delta => {
     listenerCount += delta
 
     if (listenerCount === 1) {
-      window.addEventListener(PopStateEvent, handlePopState)
+      const isSafari = /^((?!chrome).)*safari/i.test(navigator.userAgent)
+      if (isSafari) {
+        window.addEventListener('load', function() {
+          setTimeout(function() {
+            window.addEventListener(PopStateEvent, handlePopState)
+          }, 0);
+        });
+      } else {
+        window.addEventListener(PopStateEvent, handlePopState)
+      }
     } else if (listenerCount === 0) {
       window.removeEventListener(PopStateEvent, handlePopState)
     }

@@ -1,3 +1,4 @@
+import { Dimensions } from 'react-native'
 import { onAndSyncApis, noPromiseApis, otherApis, initPxTransform } from '@tarojs/taro'
 import request from './api/request'
 import storage from './api/storage'
@@ -6,17 +7,15 @@ import network from './api/device/network'
 import clipboard from './api/device/clipboard'
 import phone from './api/device/phone'
 import vibrate from './api/device/vibrate'
-import accelerometer from './api/device/accelerometer'
+import * as accelerometer from './api/accelerometer'
 import deviceMotion from './api/device/deviceMotion'
 import others from './api/others'
-import media from './api/media'
-import file from './api/file'
+import * as media from './api/media'
+import * as file from './api/file'
 import webSocket from './api/webSocket'
-import geolocation from './api/geolocation'
-import toast from './api/WxToast'
-import showModal from './api/WxModal'
-import showActionSheet from './api/WxActionSheet'
-import previewImage from './api/WxPreviewImage'
+import location from './api/location'
+import * as toast from './api/interface'
+import * as image from './api/image'
 import web from './api/web'
 
 function processApis (taro) {
@@ -29,17 +28,25 @@ function processApis (taro) {
 }
 
 function pxTransform (size) {
+  const deviceWidthDp = Dimensions.get('window').width
+  const uiWidthPx = 375
   const {designWidth, deviceRatio} = this.config
   if (!(designWidth in deviceRatio)) {
     throw new Error(`deviceRatio 配置中不存在 ${designWidth} 的设置！`)
   }
-  return parseInt(size, 10) / deviceRatio[designWidth] * 2
+  const rateSize = parseInt(size, 10) / (deviceRatio[designWidth] * 2)
+  return rateSize * deviceWidthDp / uiWidthPx
+}
+
+function getApp (taro) {
+  return this._$app
 }
 
 export default function initNativeApi (taro) {
   processApis(taro)
   taro.initPxTransform = initPxTransform.bind(taro)
   taro.pxTransform = pxTransform.bind(taro)
+  taro.getApp = getApp.bind(taro)
   Object.assign(
     taro,
     request,
@@ -55,11 +62,9 @@ export default function initNativeApi (taro) {
     media,
     file,
     webSocket,
-    geolocation,
+    location,
     toast,
-    showModal,
-    showActionSheet,
-    previewImage,
+    image,
     others
   )
 }
